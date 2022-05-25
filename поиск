@@ -1,0 +1,195 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
+#include <cstdlib>
+#include <ctime>
+#include <stdio.h>
+#include <tuple>
+#include <windows.h>
+#include <math.h>
+
+//бинарный метод
+void task1() {
+	int n = 0,//длина таблицы, кол-во чисел
+		minA = 1, //мин значение таблицы
+		maxA = 1000, //макс значение таблицы
+		maxTries = 100; //максимальное кол-во сравнений
+	//задаем n
+	printf("Введите длину: ");
+	scanf_s("%d", &n);
+
+	//создаем таблицу
+	int* A = new int[n];
+	//заполняем числами
+	for (int i = 0; i < n; i++) {
+		A[i] = minA + rand() % (maxA - minA);
+	}
+	//упорядочиваем
+	for (int a = 0; a < n; a++) {
+		for (int b = a+1; b < n; b++) {
+			if (A[a] > A[b]) {
+				int t = A[a];
+				A[a] = A[b];
+				A[b] = t;
+			}
+		}
+	}
+	//выводим
+	bool retry = true;
+	while (retry) {
+		printf("Хотите вывести таблицу? (y/n): ");
+		char c = 'n';
+		scanf_s(" %c", &c);
+		if (c == 'y') {
+			for (int i = 0; i < n; i++)
+				printf("%d ", A[i]);
+			retry = false;
+		}
+		else if (c == 'n') retry = false;
+	}
+
+	//БИНАРНЫЙ ПОИСК
+	int left = 0, //левый край зоны поиска
+		right = n - 1, //правый край
+		middle = 0, //центр
+		x = 0, //искомое число
+		xp = INT_MIN;
+
+	//задаем искомое число
+	printf("\nВведите искомое число: ");
+	scanf_s("%d", &x);
+
+	//бинарно ищем
+	for (int i = 0; left <= right && i < maxTries; i++) {
+		middle = (left + right) / 2;
+		if (x == A[middle]) {
+			for(int a = 0; a <= middle && A[middle]==A[middle-a];a++)
+				xp = middle-a; //если повторяются, то берем самое левое
+		}
+		else if (A[middle] < x)
+			left = middle + 1;
+		else 
+			right = middle - 1;
+	}
+	//выводим результаты поиска
+	if(xp != INT_MIN)
+		printf("Число найдено. Его индекс: %d", xp);
+	else
+		printf("Число не найдено");
+}
+
+//Алгоритм Бойера-Мура
+void task2() {
+	int n = 0,//длина таблицы, кол-во чисел
+		maxTries = 100, //максимальное кол-во сравнений
+		probchance = 10;
+	const int tlen = 100; //максимальная длина временной строки
+
+	//создаем строку
+	char* S = nullptr;
+
+	//заполнение строки
+	bool retry = true;
+	while (retry) {
+		printf("Вы хотите: \n1)ввести свою строку\n2)использовать случайно сгенерированную строку? (1/2):\n");
+		int i = 0;
+		scanf_s("%i", &i);
+		if (i == 1) { //своя
+			retry = false;
+
+			printf("Введите свою строку (не более %d символов):\n", tlen);
+			//создаем временную строку 
+			char t[tlen];
+			scanf(" %500[^\n]", t);
+			//переносим в строку t в А
+			S = new char[strlen(t)];
+			for (int i = 0; i < strlen(t); S[i] = t[i], i++);
+			S[strlen(t)] = '\0';
+		}
+		else if (i == 2) { //сгенерированная
+			retry = false;
+
+			//задаем n
+			printf("Введите длину: ");
+			scanf_s("%d", &n);
+
+			//генерируем значения A
+			printf("\n");
+			S = new char[n];
+			bool lprob = false;
+			for (int i = 0; i < n; i++) {
+				char t = (char)('A' + rand() % ('Z' - 'A' + 1 + probchance));
+				if (t > 'Z') { //генерация пробелов
+					if (!lprob) {
+						t = ' ';
+						lprob = true;
+					}
+					else t -= probchance;
+				}
+				else lprob = false;
+				S[i] = t;
+				printf("%c", S[i]);
+			}
+			S[n] = '\0';
+		}
+	}
+	//получаем искомое слово
+	printf("\n");
+	printf("Введите искомое слово (не более %d символов):\n", tlen);
+	//создаем временную строку 
+	char t[tlen];
+	scanf("%s", t);
+	//переносим в строку tw в Q
+	
+	char* Q = new char[strlen(t)];
+	for (int i = 0; i < strlen(t); Q[i] = t[i], i++);
+	Q[strlen(t)] = '\0';
+	//printf("Q:%i S:%i", strlen(Q), strlen(S));
+
+	int ind[tlen] = {}, indc = 0; //искомый индекс
+	//алгоритм Бойера-Мура
+	int i = 0, j = 0, k = 0, N = strlen(S), M = strlen(Q), d[256];
+
+	for (i = 0; i < 256; d[i] = M, i++); // задаем d
+	for (i = 0; i < M - 1; d[(unsigned char)Q[i]] = M - i - 1, i++); //расстояние до конца d
+
+	i = M - 1;
+	do {
+		j = M - 1;
+		k = i;
+		for (; (j >= 0) && (Q[j] == S[k]); j--, k--);
+		if (j < 0) { 
+			ind[indc] = k + 1;
+			indc++;
+		}
+		i += d[(unsigned)S[i]];
+	} while (i < N);
+
+	//вывод найденых слов
+	printf("\n");
+	if (indc == 0) printf("Искомое слово не найдено.");
+	else { 
+		printf("Искомое слово начинается на символе: "); 
+		for (int i = 0; i < indc; printf("%d ", ind[i]), i++);
+	}
+
+	//Вывод строки с нумерацией символов
+	printf("\n");
+	retry = true;
+	while (retry) {
+		printf("Хотите вывести нумерованную строку? (y/n): ");
+		char c = 'n';
+		scanf_s(" %c", &c);
+		if (c == 'y') {
+			for (int i = 0; i < strlen(S); printf("[%i]%c", i, S[i]), i++);
+			retry = false;
+		}
+		else if (c == 'n') retry = false;
+	}
+	printf("\n");
+}
+
+int main() {
+	srand((unsigned)time(NULL));
+	setlocale(LC_ALL, "Russian");
+	task1();
+}
